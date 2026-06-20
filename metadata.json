@@ -1,0 +1,6 @@
+{
+  "name": "ClearView YouTube Embedder",
+  "description": "An unblocked YouTube viewer using nocookie embeds.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
