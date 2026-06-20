@@ -7,6 +7,15 @@ function extractVideoId(url: string): string | null {
   return (match && match[1].length === 11) ? match[1] : null;
 }
 
+function formatDuration(seconds: number) {
+  if (!seconds) return 'LIVE';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 interface VideoItem {
   id: string;
   title: string;
@@ -54,14 +63,28 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`/api/trending?page=${pageNum}`);
+      const terms = ["trending tech", "latest technology", "new gadgets", "tech news", "future technology", "tech reviews"];
+      const searchTerm = terms[(pageNum - 1) % terms.length];
+      
+      const res = await fetch(`https://api.piped.private.coffee/search?q=${encodeURIComponent(searchTerm)}&filter=all`);
       const data = await res.json();
-      if (data.videos) {
-        if (data.videos.length === 0) setHasMore(false);
-        setLibraryVideos(prev => fresh ? data.videos : [...prev, ...data.videos]);
+      
+      if (data.items) {
+        const videos = data.items.filter((item: any) => item.type === 'stream').map((item: any) => ({
+          id: item.url.replace('/watch?v=', ''),
+          title: item.title,
+          channel: item.uploaderName || 'Unknown Channel',
+          views: `${item.views ? item.views.toLocaleString() + ' views • ' : ''}${item.uploadedDate || ''}`,
+          duration: formatDuration(item.duration),
+          color: "bg-blue-500",
+        }));
+        
+        if (videos.length === 0) setHasMore(false);
+        setLibraryVideos(prev => fresh ? videos : [...prev, ...videos]);
       }
     } catch (e) {
       console.error(e);
+      if (fresh) setHasMore(false);
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);
@@ -79,14 +102,26 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&page=${pageNum}`);
+      const searchSuffix = pageNum > 1 ? ` part ${pageNum}` : '';
+      const res = await fetch(`https://api.piped.private.coffee/search?q=${encodeURIComponent(query + searchSuffix)}&filter=all`);
       const data = await res.json();
-      if (data.videos) {
-        if (data.videos.length === 0) setHasMore(false);
-        setLibraryVideos(prev => fresh ? data.videos : [...prev, ...data.videos]);
+      
+      if (data.items) {
+        const videos = data.items.filter((item: any) => item.type === 'stream').map((item: any) => ({
+          id: item.url.replace('/watch?v=', ''),
+          title: item.title,
+          channel: item.uploaderName || 'Unknown Channel',
+          views: `${item.views ? item.views.toLocaleString() + ' views • ' : ''}${item.uploadedDate || ''}`,
+          duration: formatDuration(item.duration),
+          color: "bg-purple-500",
+        }));
+        
+        if (videos.length === 0) setHasMore(false);
+        setLibraryVideos(prev => fresh ? videos : [...prev, ...videos]);
       }
     } catch (e) {
       console.error(e);
+      if (fresh) setHasMore(false);
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);
